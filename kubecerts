@@ -1,0 +1,192 @@
+#!/bin/bash
+
+set -e
+readonly P_NAME=$(basename $0)
+readonly P_VERSION=0.1.0
+readonly DEFAULT_OUTPUT=table
+
+function usage { 
+echo "${P_NAME} [hosts] | [options] -- Shows TLS/SSL certificates info for hosts/ingresses.
+ops:
+    -h, --help              this help
+    -n, --namespace [ns]    namespace to query - default: current
+    -A, --all-namespaces    query ingress in all namespaces
+    -f, --file [filename]   read hosts from file, one host per line
+    -o, --output [format]   [ table | list | verbose ] - default: table
+    -v, --version           Prints the kubetail version
+ex:
+    ${P_NAME} -A
+    ${P_NAME} -n default
+    ${P_NAME} -A --output=list
+    ${P_NAME} letsencrypt.org expired.badssl.com
+    ${P_NAME} -f hosts.txt
+"
+}
+
+function iso_date {
+  # input format: "Apr 11 19:20:07 2019 GMT"
+  date -j -f "%b %d %T %Y GMT" "$1" "+%FT%TZ"
+}
+
+function has_kubectl? {
+	if !(hash kubectl 2>/dev/null); then
+		echo >&2 "Ops, kubectl not found. "
+		exit 1
+	fi
+}
+
+function get_all {
+	curl --insecure -v https://$1 2>&1 \
+	| awk 'BEGIN { cert=0 } /^\* SSL connection/ { cert=1 } /^\*/ { if (cert) print }'
+}
+
+function get_cert {
+	get_all $1 | grep '*  '
+}
+
+function cert.expire {
+	local date=$(echo "$1" | grep 'expire date:'	| cut -c 17- )
+	echo $(iso_date "$date")
+}
+
+function cert.start {
+	local date=$(echo "$1" | grep 'start date:'	| cut -c 16- )
+	echo $(iso_date "$date")
+}
+
+function cert.verify {
+	echo "$1" | grep 'SSL certificate verify' | cut -c 27-
+}
+
+function hosts_from_file {
+    if [ ! -f $filename ]; then
+        echo >&2 "Ops, $filename does not exist"
+		exit 1
+    else
+        echo $(< $filename)
+	fi
+}
+
+function hosts_from_kube {
+	has_kubectl?
+	if [[ $namespace_arg == '-A' ]]; then
+	  col=3
+	else
+	  col=2
+    fi
+	kubectl get ingress $namespace_arg --no-headers | tr -s ' ' | cut -d ' ' -f$col | tr , '\n' | sort
+}
+
+function verbose {
+	for host in $hosts; do
+		echo "> $host"
+		echo "$(get_all $host)"
+		echo
+	done 
+}
+
+function list {
+	for host in $hosts; do
+		echo ">> $host"
+		echo "$(get_cert $host)"
+		echo
+	done 
+}
+
+function table {
+	(echo HOST+START+EXPIRE+VERIFY;
+	for host in $hosts; do
+	echo $(line $host)
+	done) | column -t -s+
+}
+
+function line {
+	local host=$1
+	local cert=$(get_cert $1)
+    local expire=$(cert.expire "$cert")
+    local start=$(cert.start "$cert")
+	local verify=$(cert.verify "$cert")
+	echo "$host+$start+$expire+$verify"
+}
+
+#-- MAIN 
+
+args=()
+output=$DEFAULT_OUTPUT
+
+if [ "$#" -ne 0 ]; then
+	while [ "$#" -gt 0 ]
+	do
+		case "$1" in
+		-h|--help)
+			usage
+			exit 0
+			;;
+		-V|--version)
+			echo "$P_VERSION"
+			exit 0
+			;;
+		-o|--output)
+			output=$2
+			shift
+			;;
+		-f|--file)
+			filename=$2
+			shift
+			;;
+		-A|--all-namespaces)
+		    namespace_arg="-A"
+			;;
+		-n|--namespace)
+			namespace_arg="--namespace $2"
+			shift
+			;;
+		--)
+			break
+			;;
+		-*)
+			echo "Invalid option '$1'. Use --help to see the valid options" >&2
+			exit 1
+			;;
+		# an option argument, continue
+		*) 
+		    args+=("$1")
+		    ;;
+		esac
+		shift
+	done
+else
+	usage
+	exit 1
+fi
+
+if [[ -n "$args" ]]; then
+  hosts="${args[@]}"
+elif [[ -n $filename ]]; then
+  hosts=$(hosts_from_file $filename )
+else 
+  hosts=$(hosts_from_kube)
+fi
+
+#
+# DEBUG 
+#
+# echo "
+# ---- debug
+# args:      [${args[@]}] 
+# namespace: [$namespace_arg]
+# filename:  [$filename]
+# filter:    [$filter]
+# output:    [$output]
+# ---
+# $hosts
+# ---
+# "
+
+case "$output" in
+	table)   table;;
+	list)    list;;
+	verbose) verbose;;
+	*)       echo "Ops, [$output] is not one of: table, list or verbose.";;
+esac
+
