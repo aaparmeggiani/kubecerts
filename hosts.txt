@@ -1,0 +1,4 @@
+github.com
+google.com
+letsencrypt.org
+expired.badssl.com
