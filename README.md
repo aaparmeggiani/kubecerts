@@ -33,7 +33,7 @@ ops:
 ## Examples
 ```console
 $ date
-Fri  6 Dec 2019 15:59:11 GMT
+Fri  6 Dec 2019 19:30:00 GMT
 
 $ kubecerts github.com letsencrypt.org expired.badssl.com
 HOST                START                 EXPIRE                VERIFY
