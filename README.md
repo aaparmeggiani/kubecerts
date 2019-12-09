@@ -4,18 +4,19 @@ Shows TLS/SSL certificates info for hosts/ingresses.
 
 ## Install
 
-You will need [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) installed and working in your context for ingress queries. (TLDR; `kubectl get ingress -A`)
+You will need [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) installed and working in your context for ingress queries.  
+(i.e. `kubectl get ingress -A` should *just work* from your command line.)
 
-* generic Unix install
+#### macOS / Homebrew
+```console
+brew tap aaparmeggiani/tap
+brew install kubecerts
+```
+
+#### generic Unix install
 ```console
 git clone https://github.com/aaparmeggiani/kubecerts
 make install
-```
-
-* macOS / Homebrew
-```console
-brew tap aaparmeggiani/repo  (homebrew-repo)
-brew install kubecerts
 ```
 
 ## Usage
@@ -64,15 +65,8 @@ $ kubecerts google.com --output list
 ## Todo
 * namespace column (when `--all-namespaces`)
 * column filters
-* `subject`, `issuer`,  `days to expire` columns
-* add 
-
+* `subject`, `issuer`, `days to expire` columns
+* better unix compatibility 
 
 ## License
 MIT
-
-alpine dependencies
-bash
-curl 
-util-linux
-*date doesn-t accept -f parameter
