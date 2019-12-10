@@ -12,11 +12,14 @@ You will need [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 brew tap aaparmeggiani/tap
 brew install kubecerts
 ```
+OR
+```console
+brew install aaparmeggiani/tap/kubecerts
+```
 
 #### generic Unix install
 ```console
 git clone https://github.com/aaparmeggiani/kubecerts
-make install
 ```
 
 ## Usage
@@ -67,6 +70,7 @@ $ kubecerts google.com --output list
 * column filters
 * `subject`, `issuer`, `days to expire` columns
 * better unix compatibility 
+* better args parser
 
 ## License
 MIT
