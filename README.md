@@ -9,11 +9,6 @@ You will need [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 #### macOS / Homebrew
 ```console
-brew tap aaparmeggiani/tap
-brew install kubecerts
-```
-OR
-```console
 brew install aaparmeggiani/tap/kubecerts
 ```
 
