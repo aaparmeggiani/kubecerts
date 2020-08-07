@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-readonly P_NAME=$(basename $0)
+readonly P_NAME=$(basename "$0")
 readonly P_VERSION=0.1.0
 readonly DEFAULT_OUTPUT=table
 
@@ -28,7 +28,7 @@ function iso_date {
   date -j -f "%b %d %T %Y GMT" "$1" "+%FT%TZ"
 }
 
-function has_kubectl? {
+function check_kubectl {
 	if !(hash kubectl 2>/dev/null); then
 		echo >&2 "Ops, kubectl not found. "
 		exit 1
@@ -41,17 +41,19 @@ function get_all {
 }
 
 function get_cert {
-	get_all $1 | grep '*  '
+	get_all "$1" | grep '*  '
 }
 
 function cert.expire {
-	local date=$(echo "$1" | grep 'expire date:'	| cut -c 17- )
-	echo $(iso_date "$date")
+	local date
+	date=$(echo "$1" | grep 'expire date:'	| cut -c 17- )
+	iso_date "$date"
 }
 
 function cert.start {
-	local date=$(echo "$1" | grep 'start date:'	| cut -c 16- )
-	echo $(iso_date "$date")
+	local date
+	date=$(echo "$1" | grep 'start date:'	| cut -c 16- )
+	iso_date "$date"
 }
 
 function cert.verify {
@@ -59,16 +61,16 @@ function cert.verify {
 }
 
 function hosts_from_file {
-    if [ ! -f $filename ]; then
+    if [ ! -f "$filename" ]; then
         echo >&2 "Ops, $filename does not exist"
 		exit 1
     else
-        echo $(< $filename)
+        echo "$(< "$filename")"
 	fi
 }
 
 function hosts_from_kube {
-	has_kubectl?
+	check_kubectl
 	if [[ $namespace_arg == '-A' ]]; then
 	  col=3
 	else
@@ -80,7 +82,7 @@ function hosts_from_kube {
 function verbose {
 	for host in $hosts; do
 		echo "> $host"
-		echo "$(get_all $host)"
+		get_all "$host"
 		echo
 	done 
 }
@@ -88,7 +90,7 @@ function verbose {
 function list {
 	for host in $hosts; do
 		echo ">> $host"
-		echo "$(get_cert $host)"
+		get_cert "$host"
 		echo
 	done 
 }
@@ -96,16 +98,17 @@ function list {
 function table {
 	(echo HOST+START+EXPIRE+VERIFY;
 	for host in $hosts; do
-	echo $(line $host)
+	line "$host"
 	done) | column -t -s+
 }
 
 function line {
-	local host=$1
-	local cert=$(get_cert $1)
-    local expire=$(cert.expire "$cert")
-    local start=$(cert.start "$cert")
-	local verify=$(cert.verify "$cert")
+	local host cert expire start verify
+	host=$1
+	cert=$(get_cert "$1")
+  expire=$(cert.expire "$cert")
+  start=$(cert.start "$cert")
+	verify=$(cert.verify "$cert")
 	echo "$host+$start+$expire+$verify"
 }
 
@@ -163,14 +166,13 @@ fi
 if [[ -n "$args" ]]; then
   hosts="${args[@]}"
 elif [[ -n $filename ]]; then
-  hosts=$(hosts_from_file $filename )
+  hosts=$(hosts_from_file "$filename" )
 else 
   hosts=$(hosts_from_kube)
 fi
 
-#
-# DEBUG 
-#
+## DEBUG ##
+
 # echo "
 # ---- debug
 # args:      [${args[@]}] 
