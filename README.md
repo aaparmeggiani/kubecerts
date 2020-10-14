@@ -61,11 +61,11 @@ $ kubecerts google.com --output list
 ```
 
 ## Todo
-* namespace column (when `--all-namespaces`)
-* column filters
-* `subject`, `issuer`, `days to expire` columns
-* better unix compatibility 
-* better args parser
+- [ ] namespace column (when `--all-namespaces`)
+- [ ] column filters
+- [ ] `subject`, `issuer`, `days to expire` columns
+- [ ] better unix compatibility 
+- [ ] better args parser
 
 ## License
 MIT
